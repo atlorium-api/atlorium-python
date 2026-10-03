@@ -1,0 +1,62 @@
+# Тесты, линтер и типы на всех поддерживаемых версиях Python.
+# Живой API здесь не вызывается: тесты идут на подменённом транспорте.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
+      - run: pip install -e ".[dev]"
+      - run: pytest
+      - run: mypy
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: ruff format --check .
+      # Сгенерированный код должен совпадать с тем, что даёт генератор из закоммиченных спек.
+      # git status --porcelain ловит и изменённые, и новые неотслеживаемые файлы.
+      - name: Generated code is up to date
+        run: |
+          python scripts/generate.py
+          if [ -n "$(git status --porcelain -- src/atlorium)" ]; then
+            echo "Сгенерированный код устарел: запустите python scripts/generate.py и закоммитьте результат."
+            git status -- src/atlorium
+            git diff -- src/atlorium
+            exit 1
+          fi
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: pip install build twine
+      - run: python -m build
+      - run: twine check --strict dist/*

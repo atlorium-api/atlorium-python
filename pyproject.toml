@@ -1,0 +1,101 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "atlorium"
+dynamic = ["version"]
+description = "Официальный Python SDK Atlorium: ЕГРЮЛ, БИК, SWIFT, ГАР/ФИАС, геокодинг, OCR и ещё 17 B2B API для российского рынка"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Atlorium", email = "support@atlorium.com" }]
+keywords = [
+    "atlorium", "api", "sdk", "egrul", "егрюл", "инн", "бик", "cbr", "swift", "bin", "aml",
+    "fias", "gar", "фиас", "geocoding", "ocr", "dns", "cidr", "cron", "ssl", "weather",
+    "test-data", "pagespeed", "core-web-vitals", "russia",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Natural Language :: Russian",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+    "Framework :: AsyncIO",
+]
+dependencies = ["httpx>=0.26,<1"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "ruff==0.16.7",  # точная версия: от неё зависит вывод генератора (проверяется в CI)
+    "mypy==2.3.1",
+]
+
+[project.urls]
+Homepage = "https://atlorium.com"
+Documentation = "https://github.com/atlorium-api/atlorium-python#readme"
+Source = "https://github.com/atlorium-api/atlorium-python"
+Issues = "https://github.com/atlorium-api/atlorium-python/issues"
+Changelog = "https://github.com/atlorium-api/atlorium-python/blob/main/CHANGELOG.md"
+
+[tool.hatch.version]
+path = "src/atlorium/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/atlorium"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/atlorium",
+    "tests",
+    "scripts",
+    "spec",
+    "README.md",
+    "README.en.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "pyproject.toml",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "S", "C4", "PIE", "RET", "PT"]
+ignore = [
+    "RUF001", "RUF002", "RUF003",  # кириллица в строках, docstring и комментариях — это норма
+    "UP007",                        # Union в псевдонимах типов нужен для совместимости с 3.10 в рантайме
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106"]
+"scripts/**" = ["S310", "T201"]
+"src/atlorium/types/**" = ["E501"]
+"src/atlorium/resources/**" = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+files = ["src", "tests", "scripts"]
+warn_unreachable = true

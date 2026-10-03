@@ -1,0 +1,51 @@
+# Публикация в PyPI по тегу вида v0.1.0 через Trusted Publishing (без токенов в секретах).
+#
+# Один раз до первого релиза: на pypi.org → Publishing → Add a new pending publisher:
+#   project: atlorium, owner: atlorium-api, repository: atlorium-python,
+#   workflow: publish.yml, environment: pypi
+name: Publish to PyPI
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Tag matches package version
+        run: |
+          version=$(python -c "import re,pathlib;print(re.search(r'__version__ = \"(.+?)\"', pathlib.Path('src/atlorium/_version.py').read_text()).group(1))")
+          test "v$version" = "$GITHUB_REF_NAME" || { echo "Тег $GITHUB_REF_NAME не совпадает с версией $version"; exit 1; }
+      - run: pip install -e ".[dev]" build twine
+      - run: pytest
+      - run: mypy
+      - run: python -m build
+      - run: twine check --strict dist/*
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/atlorium
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
